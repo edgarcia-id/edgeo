@@ -18,6 +18,7 @@
   },
   "files": [
     "dist/",
+    "assets/",
     "integrations/edgeo.skill.md",
     "README.md",
     "server.json",

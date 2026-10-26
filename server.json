@@ -5,6 +5,20 @@
   "description": "Local MCP for evidence-based SEO, GEO, Google AI Search, and Search Console.",
   "version": "0.1.0",
   "websiteUrl": "https://github.com/edgarcia-id/edgeo",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/edgarcia-id/edgeo/main/assets/edgeo-icon.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"],
+      "theme": "dark"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/edgarcia-id/edgeo/main/assets/edgeo-icon.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": ["any"],
+      "theme": "dark"
+    }
+  ],
   "repository": {
     "url": "https://github.com/edgarcia-id/edgeo",
     "source": "github"

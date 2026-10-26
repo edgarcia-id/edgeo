@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">EdGEO</title>
+  <desc id="desc">A mint and violet globe with a discovery spark on a deep navy background.</desc>
+  <defs>
+    <radialGradient id="background" cx="42%" cy="35%" r="80%">
+      <stop offset="0" stop-color="#182B4B" />
+      <stop offset="1" stop-color="#08111F" />
+    </radialGradient>
+    <linearGradient id="globe" x1="118" y1="118" x2="394" y2="394" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#77F2D3" />
+      <stop offset="1" stop-color="#49B9E8" />
+    </linearGradient>
+    <clipPath id="globeClip">
+      <circle cx="256" cy="256" r="151" />
+    </clipPath>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#background)" />
+  <circle cx="256" cy="256" r="160" fill="#10213B" stroke="url(#globe)" stroke-width="10" />
+  <g clip-path="url(#globeClip)" fill="none" stroke="#8CEBD9" stroke-linecap="round" stroke-width="8">
+    <path d="M256 105 C205 153 205 359 256 407" />
+    <path d="M256 105 C307 153 307 359 256 407" />
+    <path d="M106 256 H406" />
+    <path d="M117 204 C187 232 325 232 395 204" opacity=".78" />
+    <path d="M117 308 C187 280 325 280 395 308" opacity=".78" />
+  </g>
+  <circle cx="256" cy="256" r="13" fill="#F4FFF9" />
+  <circle cx="256" cy="256" r="27" fill="none" stroke="#83F1D4" stroke-opacity=".7" stroke-width="5" />
+  <path d="M379 83 L391 113 L421 125 L391 137 L379 167 L367 137 L337 125 L367 113 Z" fill="#B7A5FF" />
+  <circle cx="405" cy="178" r="7" fill="#79EBD1" />
+</svg>
