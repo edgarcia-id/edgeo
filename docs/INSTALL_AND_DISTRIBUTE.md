@@ -2,7 +2,13 @@
 
 ## Local bootstrap
 
-After `github.com/edgarcia-id/edgeo` is public, users can configure selected local clients with:
+After the npm package is published, users can configure selected local clients with:
+
+```sh
+npx -y edgeo-mcp install --agent claude,codex,cursor,gemini
+```
+
+Until npm publication is complete, bootstrap from the GitHub source:
 
 ```sh
 npx -y --package=github:edgarcia-id/edgeo edgeo-mcp install --agent claude,codex,cursor,gemini
@@ -38,7 +44,7 @@ The MCP server registers a prompt named `edgeo`. MCP standardizes tools and prom
 
 ## MCP Registry and agent catalogs
 
-The repository can be published to the [Official MCP Registry](https://registry.modelcontextprotocol.io/docs) after a public GitHub repository and package metadata are ready. The registry is a discovery directory; it does not automatically list EdGEO in each proprietary agent catalog.
+The repository includes `server.json` and the npm `mcpName` required by the [Official MCP Registry](https://registry.modelcontextprotocol.io/docs). Publish the npm package first, then authenticate with `mcp-publisher` and publish `server.json`. The registry is a discovery directory; it does not automatically list EdGEO in each proprietary agent catalog. See the [official package publishing quickstart](https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/quickstart.mdx).
 
 - **Gemini CLI extension gallery:** add a root `gemini-extension.json`, add the `gemini-cli-extension` GitHub topic, and use the public-repository release path. The gallery crawls tagged repos.
 - **Claude Code marketplace:** publish a `.claude-plugin/marketplace.json` and the EdGEO plugin manifest, then users add `edgarcia-id/edgeo` as a marketplace.
@@ -52,8 +58,8 @@ These directory submissions are not completed by pushing the source repository. 
 1. Confirm project owner, license, `NOTICE`, and contact/security policy.
 2. Run `npm ci`, `npm test`, `npm run typecheck`, and `npm audit --omit=dev` on a clean checkout.
 3. Review `npm pack --dry-run` to verify the published package contents and executable entry point.
-4. Create a version tag and GitHub Release after approving the public push. If npm is also used, configure npm publishing separately; no npm token is stored in this repository.
-5. Submit the MCP Registry and agent catalog packages independently, using the corresponding official validation/review process.
+4. Publish `edgeo-mcp` to npm, then validate and publish `server.json` with `mcp-publisher`.
+5. Create a version tag and GitHub Release after approval. Submit other agent listings separately through each platform's validation and review flow.
 
 ## Source package commands
 
@@ -66,4 +72,4 @@ npm run typecheck
 node dist/cli.js install --agent cursor,gemini
 ```
 
-The published GitHub install command uses the repository URL directly. A future npm publication can shorten it to `npx -y edgeo-mcp ...` once the package name and account release are confirmed.
+The GitHub source install command remains available as a bootstrap option before npm publication.

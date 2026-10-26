@@ -331,3 +331,13 @@ test("doctor detects Cursor and Gemini from their existing user configuration", 
     await rm(home, { recursive: true, force: true });
   }
 });
+
+test("MCP Registry metadata matches the npm package identity", async () => {
+  const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  const registry = JSON.parse(await readFile(new URL("../server.json", import.meta.url), "utf8"));
+  assert.equal(packageJson.mcpName, registry.name);
+  assert.equal(packageJson.version, registry.version);
+  assert.equal(registry.packages[0].identifier, packageJson.name);
+  assert.equal(registry.packages[0].version, packageJson.version);
+  assert.equal(registry.packages[0].transport.type, "stdio");
+});

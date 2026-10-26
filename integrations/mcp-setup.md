@@ -1,6 +1,12 @@
 # Hubungkan EdGEO ke AI agent
 
-Setelah repository GitHub publik, cara yang disarankan adalah memakai installer:
+Setelah paket npm diterbitkan, cara yang disarankan adalah memakai installer:
+
+```sh
+npx -y edgeo-mcp install --agent claude,codex,cursor,gemini
+```
+
+Selama paket npm belum diterbitkan, bootstrap installer dari source GitHub:
 
 ```sh
 npx -y --package=github:edgarcia-id/edgeo edgeo-mcp install --agent claude,codex,cursor,gemini
@@ -10,12 +16,12 @@ Perintah itu menambahkan server stdio bernama `edgeo` pada konfigurasi user-leve
 
 ## Instalasi manual
 
-Semua contoh memakai proses lokal `npx`. Host akan mengambil source dari repository GitHub dan membangun `dist/` melalui lifecycle `prepare` npm.
+Semua contoh memakai proses lokal `npx`. Contoh instalasi npm menggunakan paket yang sudah diterbitkan. Bootstrap GitHub membangun `dist/` melalui lifecycle `prepare` npm.
 
 ### Claude Code
 
 ```sh
-claude mcp add --scope user --transport stdio edgeo -- npx -y --package=github:edgarcia-id/edgeo edgeo-mcp serve
+claude mcp add --scope user --transport stdio edgeo -- npx -y edgeo-mcp serve
 ```
 
 Untuk skill `/edgeo`, salin `integrations/edgeo.skill.md` ke `~/.claude/skills/edgeo/SKILL.md`.
@@ -23,7 +29,7 @@ Untuk skill `/edgeo`, salin `integrations/edgeo.skill.md` ke `~/.claude/skills/e
 ### Codex
 
 ```sh
-codex mcp add edgeo -- npx -y --package=github:edgarcia-id/edgeo edgeo-mcp serve
+codex mcp add edgeo -- npx -y edgeo-mcp serve
 ```
 
 Untuk skill `$edgeo`, salin `integrations/edgeo.skill.md` ke `$CODEX_HOME/skills/edgeo/SKILL.md` (umumnya `~/.codex/skills/edgeo/SKILL.md`).
@@ -37,7 +43,7 @@ Gabungkan objek berikut pada `~/.cursor/mcp.json` dan pertahankan isi JSON yang 
   "mcpServers": {
     "edgeo": {
       "command": "npx",
-      "args": ["-y", "--package=github:edgarcia-id/edgeo", "edgeo-mcp", "serve"]
+      "args": ["-y", "edgeo-mcp", "serve"]
     }
   }
 }
@@ -52,7 +58,7 @@ Gabungkan objek berikut pada `~/.gemini/settings.json` dan pertahankan isi konfi
   "mcpServers": {
     "edgeo": {
       "command": "npx",
-      "args": ["-y", "--package=github:edgarcia-id/edgeo", "edgeo-mcp", "serve"]
+      "args": ["-y", "edgeo-mcp", "serve"]
     }
   }
 }

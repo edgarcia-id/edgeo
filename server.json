@@ -1,0 +1,30 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.edgarcia-id/edgeo",
+  "title": "EdGEO",
+  "description": "Local MCP for evidence-based SEO, GEO, Google AI Search, and Search Console.",
+  "version": "0.1.0",
+  "websiteUrl": "https://github.com/edgarcia-id/edgeo",
+  "repository": {
+    "url": "https://github.com/edgarcia-id/edgeo",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "edgeo-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "GEMINI_API_KEY",
+          "description": "Optional Google Gemini API key. Used only when the user explicitly consents to sending a prompt to Gemini.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

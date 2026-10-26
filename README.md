@@ -17,7 +17,13 @@ EdGEO gives compatible AI agents tools to inspect public website pages, crawl a 
 
 ## Install in an AI agent
 
-After this repository is public, install the local MCP server in selected clients with:
+After the npm package is published, install the local MCP server in selected clients with:
+
+```sh
+npx -y edgeo-mcp install --agent claude,codex,cursor,gemini
+```
+
+Until the npm package is available, you can bootstrap the installer from the public GitHub repository:
 
 ```sh
 npx -y --package=github:edgarcia-id/edgeo edgeo-mcp install --agent claude,codex,cursor,gemini
@@ -26,8 +32,8 @@ npx -y --package=github:edgarcia-id/edgeo edgeo-mcp install --agent claude,codex
 The installer merges user-level settings, backs up JSON config files before editing them, and preserves unrelated server entries. Claude Code and Codex use their native CLI commands; Cursor and Gemini CLI use their user MCP configuration. Claude Code and Codex also receive an EdGEO skill. Restart or reload the selected clients after installation.
 
 ```sh
-npx -y --package=github:edgarcia-id/edgeo edgeo-mcp doctor
-npx -y --package=github:edgarcia-id/edgeo edgeo-mcp uninstall --agent claude,codex,cursor,gemini
+npx -y edgeo-mcp doctor
+npx -y edgeo-mcp uninstall --agent claude,codex,cursor,gemini
 ```
 
 The MCP server registers a prompt named `edgeo`. Hosts that expose MCP prompts as slash commands may show `/edgeo`; other hosts use their skill picker, prompt UI, or normal tool invocation. MCP does not define one slash-command syntax for every agent.
@@ -39,7 +45,7 @@ For direct/manual setup and supported host behavior, read [Install and distribut
 Google Search Console API usage is free of charge and subject to Google's quotas. Each user connects their own Google account; EdGEO requests only the Search Console read-only scope. To connect, create a Google OAuth client of type **Desktop app**, enable the Search Console API in that Google Cloud project, and run:
 
 ```sh
-npx -y --package=github:edgarcia-id/edgeo edgeo-mcp search-console connect --client-id YOUR_DESKTOP_OAUTH_CLIENT_ID
+npx -y edgeo-mcp search-console connect --client-id YOUR_DESKTOP_OAUTH_CLIENT_ID
 ```
 
 The browser opens Google's consent screen and returns to a loopback callback on the same computer. The refresh token is stored in the user's local EdGEO data directory; set `EDGEO_DATA_DIR` to choose another directory. `edgeo-mcp search-console status` checks local setup and `edgeo-mcp search-console disconnect` revokes the saved grant and removes it.
@@ -86,4 +92,4 @@ Apache-2.0. Commercial use and redistribution are permitted subject to the licen
 
 ## Project status
 
-The initial GitHub release is prepared locally. The build, typecheck, MCP protocol smoke checks, automated tests, production dependency audit, and package dry run have passed. Hosted CI has not run yet; it will start after the first push. Public npm publishing and submission to third-party agent directories are separate steps with their own account and review requirements.
+The GitHub source is available on `main`. Local checks and hosted GitHub Actions have passed for Node.js 20, 22, and 24. The first npm release and MCP Registry listing are prepared but have not been published; agent-specific catalogs require separate submissions.
