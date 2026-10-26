@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 — Gemini CLI extension
+
+- Add a native Gemini CLI extension manifest that starts the published npm MCP server.
+- Expose the `edgeo` MCP prompt as the Gemini CLI `/edgeo` command.
+- Keep the optional Gemini API key in Gemini CLI's sensitive extension settings.
+- Include the extension manifest in the npm package and update MCP Registry metadata.
+
 ## 0.1.0 — initial release
 
 - Add local MCP tools for page audits, bounded site crawling, Search Console CSV import and summaries, AI answer analysis, and comparison of recorded observations.

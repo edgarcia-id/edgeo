@@ -1,0 +1,19 @@
+{
+  "name": "edgeo",
+  "version": "0.1.1",
+  "description": "Evidence-based SEO, GEO, Google AI Search, and Search Console audits through MCP.",
+  "mcpServers": {
+    "edgeo": {
+      "command": "npx",
+      "args": ["-y", "edgeo-mcp", "serve"]
+    }
+  },
+  "settings": [
+    {
+      "name": "Gemini API key (optional)",
+      "description": "Only needed when you explicitly use EdGEO's Gemini provider. Each Gemini request requires consent.",
+      "envVar": "GEMINI_API_KEY",
+      "sensitive": true
+    }
+  ]
+}

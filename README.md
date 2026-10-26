@@ -19,17 +19,19 @@ EdGEO gives compatible AI agents tools to inspect public website pages, crawl a 
 
 ## Install in an AI agent
 
-After the npm package is published, install the local MCP server in selected clients with:
+Install the local MCP server in selected clients with:
 
 ```sh
 npx -y edgeo-mcp install --agent claude,codex,cursor,gemini
 ```
 
-Until the npm package is available, you can bootstrap the installer from the public GitHub repository:
+For a native Gemini CLI extension installation, use:
 
 ```sh
-npx -y --package=github:edgarcia-id/edgeo edgeo-mcp install --agent claude,codex,cursor,gemini
+gemini extensions install https://github.com/edgarcia-id/edgeo
 ```
+
+The extension registers the MCP prompt as `/edgeo`. Its optional Gemini API key setting is only needed for EdGEO's Gemini provider; the key is kept in Gemini CLI's sensitive extension settings.
 
 The installer merges user-level settings, backs up JSON config files before editing them, and preserves unrelated server entries. Claude Code and Codex use their native CLI commands; Cursor and Gemini CLI use their user MCP configuration. Claude Code and Codex also receive an EdGEO skill. Restart or reload the selected clients after installation.
 
@@ -94,4 +96,4 @@ Apache-2.0. Commercial use and redistribution are permitted subject to the licen
 
 ## Project status
 
-The GitHub source is available on `main`. Local checks and hosted GitHub Actions have passed for Node.js 20, 22, and 24. The first npm release and MCP Registry listing are prepared but have not been published; agent-specific catalogs require separate submissions.
+The `edgeo-mcp` package and EdGEO server metadata are published to npm and the Official MCP Registry. The `v0.1.1` release adds native Gemini CLI extension support; the Gemini gallery discovers qualifying tagged repositories through its daily crawler.

@@ -1,6 +1,6 @@
 {
   "name": "edgeo-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "mcpName": "io.github.edgarcia-id/edgeo",
   "type": "module",
   "description": "Local-first evidence-based SEO and AI visibility audit MCP",
@@ -19,6 +19,7 @@
   "files": [
     "dist/",
     "assets/",
+    "gemini-extension.json",
     "integrations/edgeo.skill.md",
     "README.md",
     "server.json",

@@ -38,7 +38,7 @@ The installer configures a local stdio process. Public/cloud agent clients canno
 | Claude Code | `claude mcp add --scope user` plus a global EdGEO skill | `/edgeo` skill; MCP tools are available in the session |
 | Codex | `codex mcp add` plus a global EdGEO skill | `$edgeo` / skill picker; MCP prompt behavior depends on host support |
 | Cursor | Merge EdGEO into `~/.cursor/mcp.json` | MCP tools in the agent; use its prompt interface where exposed |
-| Gemini CLI | Merge EdGEO into `~/.gemini/settings.json` | MCP prompt may appear as `/edgeo` in supported CLI versions |
+| Gemini CLI | Install the EdGEO extension from GitHub | `/edgeo` MCP prompt |
 
 The MCP server registers a prompt named `edgeo`. MCP standardizes tools and prompts; each agent controls whether it surfaces that prompt as a slash command or another UI element. EdGEO cannot create a new built-in CLI subcommand inside another company's client.
 
@@ -46,7 +46,7 @@ The MCP server registers a prompt named `edgeo`. MCP standardizes tools and prom
 
 The repository includes `server.json` and the npm `mcpName` required by the [Official MCP Registry](https://registry.modelcontextprotocol.io/docs). Publish the npm package first, then authenticate with `mcp-publisher` and publish `server.json`. The registry is a discovery directory; it does not automatically list EdGEO in each proprietary agent catalog. See the [official package publishing quickstart](https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/quickstart.mdx).
 
-- **Gemini CLI extension gallery:** add a root `gemini-extension.json`, add the `gemini-cli-extension` GitHub topic, and use the public-repository release path. The gallery crawls tagged repos.
+- **Gemini CLI extension gallery:** the repository has a root `gemini-extension.json`; install it with `gemini extensions install https://github.com/edgarcia-id/edgeo`. A public repo with the `gemini-cli-extension` topic is discovered by the gallery crawler. See the [official release guide](https://github.com/google-gemini/gemini-cli/blob/main/docs/extensions/releasing.md).
 - **Claude Code marketplace:** publish a `.claude-plugin/marketplace.json` and the EdGEO plugin manifest, then users add `edgarcia-id/edgeo` as a marketplace.
 - **Cursor marketplace:** package a Cursor plugin and submit it through Cursor's marketplace review flow.
 - **ChatGPT/Codex public plugin directory:** submit a plugin package through the OpenAI plugin portal. Public remote MCP submissions need a stable public HTTPS endpoint; this project currently ships local stdio only. A local client can still be configured directly.
