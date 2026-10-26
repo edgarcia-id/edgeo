@@ -1,0 +1,49 @@
+{
+  "name": "edgeo-mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Local-first evidence-based SEO and AI visibility audit MCP",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/edgarcia-id/edgeo#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/edgarcia-id/edgeo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/edgarcia-id/edgeo/issues"
+  },
+  "bin": {
+    "edgeo-mcp": "./dist/cli.js"
+  },
+  "files": [
+    "dist/",
+    "integrations/edgeo.skill.md",
+    "README.md",
+    "LICENSE",
+    "NOTICE",
+    "docs/PRIVACY.md"
+  ],
+  "engines": {
+    "node": ">=20.18.1"
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\" && tsc --noEmit false --outDir dist --rootDir src",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run build && node --test",
+    "dev": "tsx src/cli.ts serve",
+    "start": "node dist/cli.js serve",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "^2.4.0",
+    "cheerio": "^1.2.0",
+    "ipaddr.js": "^2.5.0",
+    "undici": "^7.16.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3"
+  }
+}
