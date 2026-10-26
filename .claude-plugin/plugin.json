@@ -1,0 +1,30 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "edgeo",
+  "displayName": "EdGEO",
+  "version": "0.1.1",
+  "description": "Evidence-based SEO, GEO, Google AI Search, and Search Console audits.",
+  "author": {
+    "name": "EdGEO"
+  },
+  "homepage": "https://github.com/edgarcia-id/edgeo",
+  "repository": "https://github.com/edgarcia-id/edgeo",
+  "license": "Apache-2.0",
+  "keywords": ["seo", "geo", "ai-search", "search-console", "mcp"],
+  "icon": "./assets/edgeo-icon.png",
+  "documentationUrl": "https://github.com/edgarcia-id/edgeo#readme",
+  "supportUrl": "https://github.com/edgarcia-id/edgeo/issues",
+  "privacyPolicyUrl": "https://github.com/edgarcia-id/edgeo/blob/main/docs/PRIVACY.md",
+  "mcpServers": {
+    "edgeo": {
+      "command": "npx",
+      "args": ["-y", "edgeo-mcp", "serve"]
+    }
+  },
+  "commands": {
+    "edgeo": {
+      "source": "./commands/edgeo.md",
+      "description": "Run an evidence-first SEO, GEO, and Google AI Search audit."
+    }
+  }
+}

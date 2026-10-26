@@ -40,6 +40,15 @@ The installer configures a local stdio process. Public/cloud agent clients canno
 | Cursor | Merge EdGEO into `~/.cursor/mcp.json` | MCP tools in the agent; use its prompt interface where exposed |
 | Gemini CLI | Install the EdGEO extension from GitHub | `/edgeo` MCP prompt |
 
+Claude Code can also install the repository's self-hosted marketplace plugin:
+
+```sh
+claude plugin marketplace add edgarcia-id/edgeo
+claude plugin install edgeo@edgeo-marketplace
+```
+
+The plugin command is namespaced as `/edgeo:edgeo`. A third-party marketplace can be hosted in the same public GitHub repository without an Anthropic directory submission. The Anthropic directory is a separate, reviewed listing for Claude.ai and Cowork and requires a paid Claude plan to submit.
+
 The MCP server registers a prompt named `edgeo`. MCP standardizes tools and prompts; each agent controls whether it surfaces that prompt as a slash command or another UI element. EdGEO cannot create a new built-in CLI subcommand inside another company's client.
 
 ## MCP Registry and agent catalogs

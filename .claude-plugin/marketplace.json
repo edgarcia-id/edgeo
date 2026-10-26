@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "edgeo-marketplace",
+  "owner": {
+    "name": "EdGEO"
+  },
+  "metadata": {
+    "description": "Official open-source EdGEO plugins for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "edgeo",
+      "source": "./",
+      "description": "Evidence-based SEO, GEO, Google AI Search, and Search Console audits."
+    }
+  ]
+}

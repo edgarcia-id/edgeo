@@ -33,6 +33,15 @@ gemini extensions install https://github.com/edgarcia-id/edgeo
 
 The extension registers the MCP prompt as `/edgeo`. Its optional Gemini API key setting is only needed for EdGEO's Gemini provider; the key is kept in Gemini CLI's sensitive extension settings.
 
+For the Claude Code marketplace plugin, add the EdGEO marketplace and install its plugin:
+
+```sh
+claude plugin marketplace add edgarcia-id/edgeo
+claude plugin install edgeo@edgeo-marketplace
+```
+
+The plugin provides MCP tools and the namespaced `/edgeo:edgeo` command. The standalone installer below also installs an unqualified `/edgeo` skill.
+
 The installer merges user-level settings, backs up JSON config files before editing them, and preserves unrelated server entries. Claude Code and Codex use their native CLI commands; Cursor and Gemini CLI use their user MCP configuration. Claude Code and Codex also receive an EdGEO skill. Restart or reload the selected clients after installation.
 
 ```sh
