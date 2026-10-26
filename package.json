@@ -1,6 +1,6 @@
 {
   "name": "edgeo-mcp",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "mcpName": "io.github.edgarcia-id/edgeo",
   "type": "module",
   "description": "Local-first evidence-based SEO and AI visibility audit MCP",

@@ -1,22 +1,16 @@
 # Hubungkan EdGEO ke AI agent
 
-Setelah paket npm diterbitkan, cara yang disarankan adalah memakai installer:
+Gunakan installer dari paket npm yang telah diterbitkan:
 
 ```sh
 npx -y edgeo-mcp install --agent claude,codex,cursor,gemini
-```
-
-Selama paket npm belum diterbitkan, bootstrap installer dari source GitHub:
-
-```sh
-npx -y --package=github:edgarcia-id/edgeo edgeo-mcp install --agent claude,codex,cursor,gemini
 ```
 
 Perintah itu menambahkan server stdio bernama `edgeo` pada konfigurasi user-level. Ia menjaga server lain, membuat cadangan untuk file JSON, dan memasang skill pada Claude Code dan Codex. Jalankan `edgeo-mcp doctor` untuk memeriksa deteksi lokal dan `edgeo-mcp uninstall --agent ...` untuk melepas konfigurasi EdGEO.
 
 ## Instalasi manual
 
-Semua contoh memakai proses lokal `npx`. Contoh instalasi npm menggunakan paket yang sudah diterbitkan. Bootstrap GitHub membangun `dist/` melalui lifecycle `prepare` npm.
+Semua contoh memakai proses lokal `npx` dan paket npm yang telah diterbitkan.
 
 ### Claude Code
 

@@ -11,7 +11,7 @@ EdGEO gives compatible AI agents tools to inspect public website pages, crawl a 
 ## What EdGEO can do
 
 - **Audit a page:** inspect HTTP status and redirects, title and description, canonical and robots directives, headings, language, viewport, links, image alt text, Open Graph/Twitter metadata, hreflang, and parseable JSON-LD.
-- **Crawl a bounded site sample:** visit up to 50 same-host pages, start from the requested URL and same-host sitemap URLs, observe `robots.txt`, apply crawl delay, and report page findings and crawl errors separately.
+- **Crawl a bounded site sample:** make up to 50 same-host URL fetch attempts, starting from the requested URL and same-host sitemap URLs. EdGEO preserves trailing slashes when requesting URLs, follows `robots.txt` and crawl delay, separates non-HTML resources, and deduplicates pages that resolve to the same final URL. Remaining queued URLs are not a sitewide coverage estimate.
 - **Collect an AI answer:** query an Ollama server on loopback or query the Gemini API after explicit consent. Returned observations include provider, model, prompt type, locale, timestamp, and limitations.
 - **Analyze and compare AI answers:** analyze supplied or collected answers for literal brand mentions and domain citations. Compare answers only when prompt and recorded conditions match.
 - **Connect to Google Search Console:** authorize the user's account with a read-only OAuth scope, list available properties, and query selected dates, dimensions, and search types.
@@ -105,4 +105,4 @@ Apache-2.0. Commercial use and redistribution are permitted subject to the licen
 
 ## Project status
 
-The `edgeo-mcp` package and EdGEO server metadata are published to npm and the Official MCP Registry. The `v0.1.1` release adds native Gemini CLI extension support; the Gemini gallery discovers qualifying tagged repositories through its daily crawler.
+The `edgeo-mcp` package and EdGEO server metadata are published to npm and the Official MCP Registry. Version 0.1.2 refines crawl URL handling, redirect classification, sitemap link observations, and heading cues. Version 0.1.1 added native Gemini CLI extension support; the Gemini gallery discovers qualifying tagged repositories through its daily crawler.

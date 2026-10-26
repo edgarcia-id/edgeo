@@ -22,7 +22,7 @@ interface RobotsPolicy {
   message: string;
 }
 
-function normalizedPageUrl(input: string): URL | null {
+export function normalizedPageUrl(input: string): URL | null {
   try {
     const url = new URL(input);
     if ((url.protocol !== "http:" && url.protocol !== "https:") || url.username || url.password) {
@@ -30,11 +30,34 @@ function normalizedPageUrl(input: string): URL | null {
     }
     url.hash = "";
     url.search = "";
-    if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, "");
     return url;
   } catch {
     return null;
   }
+}
+
+export function pageUrlIdentity(input: string): string | null {
+  return normalizedPageUrl(input)?.toString() ?? null;
+}
+
+function xmlLocalName(tagName: string): string {
+  return tagName.slice(tagName.lastIndexOf(":") + 1).toLowerCase();
+}
+
+export function extractSitemapLocations(xml: string, isIndex: boolean): string[] {
+  const $ = load(xml, { xmlMode: true });
+  const parentName = isIndex ? "sitemap" : "url";
+  const locations: string[] = [];
+  for (const parent of $("*").toArray()) {
+    if (!("tagName" in parent) || xmlLocalName(parent.tagName) !== parentName) continue;
+    for (const child of $(parent).children().toArray()) {
+      if ("tagName" in child && xmlLocalName(child.tagName) === "loc") {
+        const location = $(child).text().trim();
+        if (location) locations.push(location);
+      }
+    }
+  }
+  return locations;
 }
 
 function parseRobots(body: string): {
@@ -143,10 +166,13 @@ async function pause(ms: number): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-async function loadRobots(siteUrl: URL): Promise<RobotsPolicy> {
+async function loadRobots(
+  siteUrl: URL,
+  fetchPage: typeof fetchPublicHtml,
+): Promise<RobotsPolicy> {
   const robotsUrl = new URL("/robots.txt", siteUrl);
   try {
-    const response = await fetchPublicHtml(robotsUrl.toString(), {
+    const response = await fetchPage(robotsUrl.toString(), {
       readTextBody: true,
       allowedHostnames: [siteUrl.hostname],
     });
@@ -214,6 +240,8 @@ async function loadSitemaps(
   hostname: string,
   delayMs: number,
   maxUrls: number,
+  fetchPage: typeof fetchPublicHtml,
+  wait: typeof pause,
 ): Promise<{ urls: string[]; failures: Array<{ url: string; reason: string }> }> {
   const queue = [...new Set(sitemapUrls)].slice(0, 5);
   const seenSitemaps = new Set<string>();
@@ -225,8 +253,8 @@ async function loadSitemaps(
     if (seenSitemaps.has(sitemapUrl)) continue;
     seenSitemaps.add(sitemapUrl);
     try {
-      await pause(delayMs);
-      const response = await fetchPublicHtml(sitemapUrl, {
+      await wait(delayMs);
+      const response = await fetchPage(sitemapUrl, {
         readTextBody: true,
         allowedHostnames: [hostname],
       });
@@ -248,11 +276,10 @@ async function loadSitemaps(
         continue;
       }
       const $ = load(response.html, { xmlMode: true });
-      const isIndex = $("sitemapindex").length > 0;
-      const locs = $("loc")
-        .toArray()
-        .map((element) => $(element).text().trim())
-        .filter(Boolean);
+      const isIndex = $("sitemapindex, *").toArray().some(
+        (element) => xmlLocalName(element.tagName) === "sitemapindex",
+      );
+      const locs = extractSitemapLocations(response.html, isIndex);
       for (const loc of locs) {
         let resolved: URL;
         try {
@@ -284,22 +311,28 @@ async function loadSitemaps(
   return { urls: [...urls], failures };
 }
 
-export async function crawlSite(input: {
-  url: string;
-  maxPages: number;
-  delayMs: number;
-}) {
+export async function crawlSite(
+  input: {
+    url: string;
+    maxPages: number;
+    delayMs: number;
+  },
+  dependencies: { fetchPage?: typeof fetchPublicHtml; wait?: typeof pause } = {},
+) {
   const start = normalizedPageUrl(input.url);
   if (!start) throw new Error("Enter a valid public HTTP or HTTPS site URL.");
   if (start.protocol !== "http:" && start.protocol !== "https:") {
     throw new Error("Only public HTTP and HTTPS sites can be crawled.");
   }
   const hostname = start.hostname.toLowerCase().replace(/\.$/, "");
-  const policy = await loadRobots(start);
+  const fetchPage = dependencies.fetchPage ?? fetchPublicHtml;
+  const wait = dependencies.wait ?? pause;
+  const policy = await loadRobots(start, fetchPage);
   const sitemapUrls = [
     ...policy.sitemaps,
     new URL("/sitemap.xml", start).toString(),
   ];
+  const sitemapUrlLimit = Math.min(input.maxPages * 10, 250);
   const sitemapResults =
     policy.status === "unavailable" || input.maxPages <= 0
       ? { urls: [] as string[], failures: [] as Array<{ url: string; reason: string }> }
@@ -307,15 +340,42 @@ export async function crawlSite(input: {
           sitemapUrls,
           hostname,
           Math.max(input.delayMs, policy.crawlDelayMs ?? 0),
-          Math.min(input.maxPages * 10, 250),
+          sitemapUrlLimit,
+          fetchPage,
+          wait,
         );
 
-  const queue = [start.toString(), ...sitemapResults.urls];
-  const queued = new Set(queue);
+  const queue: string[] = [];
+  const queued = new Set<string>();
+  const discoveredBy = new Map<string, Set<string>>();
+  const enqueue = (url: string, source: string) => {
+    const sources = discoveredBy.get(url) ?? new Set<string>();
+    sources.add(source);
+    discoveredBy.set(url, sources);
+    if (!queued.has(url)) {
+      queue.push(url);
+      queued.add(url);
+    }
+  };
+  enqueue(start.toString(), "start_url");
+  for (const sitemapUrl of sitemapResults.urls) enqueue(sitemapUrl, "sitemap");
   const visited = new Set<string>();
   const linkedFromCrawledPages = new Set<string>();
-  const pages: Array<Record<string, unknown>> = [];
+  const pagesByFinalUrl = new Map<string, Record<string, unknown>>();
   const errors: Array<{ url: string; reason: string }> = [];
+  const nonHtmlResources: Array<{
+    requestedUrl: string;
+    finalUrl: string;
+    status: number;
+    contentType: string | null;
+  }> = [];
+  const redirectObservations: Array<{
+    requestedUrl: string;
+    finalUrl: string;
+    redirectCount: number;
+    kind: string;
+    discoveredBy: string[];
+  }> = [];
   const effectiveDelayMs = Math.max(input.delayMs, policy.crawlDelayMs ?? 0);
   let scanned = 0;
 
@@ -332,10 +392,13 @@ export async function crawlSite(input: {
     }
 
     // robots.txt and sitemap requests also count toward pacing the origin.
-    await pause(effectiveDelayMs);
+    await wait(effectiveDelayMs);
     scanned += 1;
     try {
-      const audit = await auditPage(urlKey, { allowedHostnames: [hostname] });
+      const audit = await auditPage(urlKey, {
+        allowedHostnames: [hostname],
+        fetchPage,
+      });
       const finalUrl = new URL(audit.finalUrl);
       const page = audit.page as {
         title: string | null;
@@ -345,10 +408,52 @@ export async function crawlSite(input: {
         internalLinks: number;
         internalLinkUrls: string[];
       };
-      pages.push({
+      const http = audit.http as {
+        status: number;
+        redirectCount: number;
+        redirectClassification: string;
+        contentType: string | null;
+      };
+      if (http.redirectCount > 0) {
+        redirectObservations.push({
+          requestedUrl: urlKey,
+          finalUrl: audit.finalUrl,
+          redirectCount: http.redirectCount,
+          kind: http.redirectClassification,
+          discoveredBy: [...(discoveredBy.get(urlKey) ?? new Set(["unknown"]))],
+        });
+      }
+
+      if (http.contentType && !/text\/html|application\/xhtml\+xml/i.test(http.contentType)) {
+        nonHtmlResources.push({
+          requestedUrl: urlKey,
+          finalUrl: audit.finalUrl,
+          status: http.status,
+          contentType: http.contentType,
+        });
+        continue;
+      }
+
+      const finalPageKey = normalizedPageUrl(audit.finalUrl)?.toString() ?? audit.finalUrl;
+      const existingPage = pagesByFinalUrl.get(finalPageKey);
+      if (existingPage) {
+        const requestedUrls = existingPage.requestedUrls as string[];
+        if (!requestedUrls.includes(urlKey)) requestedUrls.push(urlKey);
+        const sourceList = existingPage.discoveredBy as string[];
+        for (const source of discoveredBy.get(urlKey) ?? []) {
+          if (!sourceList.includes(source)) sourceList.push(source);
+        }
+        continue;
+      }
+
+      const pageRecord: Record<string, unknown> = {
         requestedUrl: urlKey,
+        requestedUrls: [urlKey],
+        discoveredBy: [...(discoveredBy.get(urlKey) ?? new Set(["unknown"]))],
         finalUrl: audit.finalUrl,
-        httpStatus: (audit.http as { status: number }).status,
+        httpStatus: http.status,
+        redirectCount: http.redirectCount,
+        redirectClassification: http.redirectClassification,
         title: page.title,
         metaDescription: page.metaDescription,
         bodyTextCharacters: page.bodyTextCharacters,
@@ -357,16 +462,15 @@ export async function crawlSite(input: {
         findings: (audit.findings as Array<{ code: string; severity: string }>).map(
           ({ code, severity }) => ({ code, severity }),
         ),
-      });
+      };
+      pagesByFinalUrl.set(finalPageKey, pageRecord);
 
       for (const href of page.internalLinkUrls) {
         const link = normalizedPageUrl(new URL(href, finalUrl).toString());
         if (!link || !isSameHost(link, hostname)) continue;
-        linkedFromCrawledPages.add(link.toString());
-        if (!visited.has(link.toString()) && !queued.has(link.toString())) {
-          queue.push(link.toString());
-          queued.add(link.toString());
-        }
+        const identity = pageUrlIdentity(link.toString());
+        if (identity) linkedFromCrawledPages.add(identity);
+        enqueue(link.toString(), "internal_link");
       }
     } catch (error) {
       errors.push({
@@ -377,6 +481,7 @@ export async function crawlSite(input: {
   }
 
   const titlePages = new Map<string, { title: string; urls: string[] }>();
+  const pages = [...pagesByFinalUrl.values()];
   for (const page of pages) {
     const title = (page.title as string | null)?.trim();
     if (!title) continue;
@@ -406,15 +511,38 @@ export async function crawlSite(input: {
       findingsByCode.set(finding.code, (findingsByCode.get(finding.code) ?? 0) + 1);
     }
   }
-  const sitemapSet = new Set(sitemapResults.urls);
-  const sitemapPagesNotLinked = [...sitemapSet].filter((url) => !linkedFromCrawledPages.has(url));
+  for (const redirect of redirectObservations) {
+    if (!redirect.discoveredBy.includes("internal_link")) continue;
+    const requestedIdentity = pageUrlIdentity(redirect.requestedUrl);
+    const finalIdentity = pageUrlIdentity(redirect.finalUrl);
+    if (requestedIdentity && finalIdentity && linkedFromCrawledPages.has(requestedIdentity)) {
+      linkedFromCrawledPages.add(finalIdentity);
+    }
+  }
+  const sitemapUrlsNotObservedInScannedHtml = [...new Set(sitemapResults.urls)].filter((url) => {
+    const identity = pageUrlIdentity(url);
+    return identity !== null && !linkedFromCrawledPages.has(identity);
+  });
   const remainingQueue = queue.filter((url) => !visited.has(url));
+  const redirectSummary = {
+    redirectedRequests: redirectObservations.length,
+    singleRedirects: redirectObservations.filter((item) => item.redirectCount === 1).length,
+    trailingSlashNormalizations: redirectObservations.filter(
+      (item) => item.kind === "trailing_slash_normalization",
+    ).length,
+    multiHopChains: redirectObservations.filter((item) => item.redirectCount > 1).length,
+  };
 
   return {
     audit: "EdGEO bounded site crawl",
     observedAt: new Date().toISOString(),
     requestedUrl: start.toString(),
-    crawlScope: { hostname, sameHostnameOnly: true, queryParametersRemoved: true },
+    crawlScope: {
+      hostname,
+      sameHostnameOnly: true,
+      queryParametersRemoved: true,
+      trailingSlashPreservedForRequests: true,
+    },
     policy: {
       robotsStatus: policy.status,
       robotsMessage: policy.message,
@@ -423,20 +551,38 @@ export async function crawlSite(input: {
       requestedDelayMs: input.delayMs,
       effectiveDelayMs,
       crawlDelayCapMs: 30_000,
-      sitemapPageUrlsFound: sitemapResults.urls.length,
+      sitemapUrlsFound: sitemapResults.urls.length,
+      sitemapUrlCollectionLimit: sitemapUrlLimit,
+      sitemapUrlCollectionMayBeTruncated: sitemapResults.urls.length >= sitemapUrlLimit,
       sitemapFailures: sitemapResults.failures,
     },
-    limits: { maxPages: input.maxPages, pagesAttempted: scanned, remainingQueuedPages: remainingQueue.length },
+    limits: {
+      maxPages: input.maxPages,
+      urlsAttempted: scanned,
+      knownUrlsDiscovered: queued.size,
+      knownUrlsRemainingAtLimit: remainingQueue.length,
+      queueExhausted: remainingQueue.length === 0,
+      totalSiteUrlCountKnown: false,
+    },
     pages,
     errors,
+    nonHtmlResources,
+    redirects: {
+      summary: redirectSummary,
+      observations: redirectObservations.slice(0, 100),
+    },
     summary: {
-      pagesReturned: pages.length,
+      htmlPagesReturned: pages.length,
       pagesWithErrors: errors.length,
+      nonHtmlResources: nonHtmlResources.length,
       duplicateTitles,
       duplicateMetaDescriptions,
       findingsByCode: [...findingsByCode.entries()].map(([code, pages]) => ({ code, pages })),
-      sitemapPagesNotLinkedInScannedHtml: sitemapPagesNotLinked.slice(0, 100),
-      sitemapPagesNotLinkedCount: sitemapPagesNotLinked.length,
+      redirectSummary,
+      sitemapUrlsNotObservedInScannedHtml: sitemapUrlsNotObservedInScannedHtml.slice(0, 100),
+      sitemapUrlsNotObservedCount: sitemapUrlsNotObservedInScannedHtml.length,
+      sitemapLinkAssessment:
+        "This compares sitemap URLs with links found only in crawled HTML pages; it is not a complete link graph or proof that any URL is orphaned.",
     },
     limitations: [
       "This is a bounded HTML crawl, not a full rendering, indexing, or ranking check.",
@@ -444,7 +590,10 @@ export async function crawlSite(input: {
       "Query strings and fragments are removed to reduce duplicate URLs. This can omit parameter-specific content.",
       "robots.txt parsing supports user-agent groups, Allow/Disallow paths, crawl-delay, and Sitemap directives; advanced extensions may differ.",
       "The non-standard crawl-delay directive is capped at 30 seconds; path percent-encoding behavior may differ from a full standards implementation.",
-      "A sitemap URL not linked in scanned HTML is a review lead, not proof that a page is orphaned.",
+      "A sitemap URL not observed in scanned HTML is a bounded-sample observation, not proof that a page is orphaned; unscanned pages may link to it.",
+      "Known queued URL counts come only from fetched sitemaps and links found on scanned pages; they are not a sitewide denominator and must not be converted into a site coverage percentage.",
+      "One-hop URL-normalization redirects are reported separately from multi-hop redirect chains. Trailing-slash variants remain distinct unless a crawl observes a redirect from one form to the other.",
+      "Non-HTML sitemap resources are listed separately and are not included in HTML page summaries.",
       "Crawl page errors and blocked paths remain separate from pages that returned audit data.",
     ],
   };

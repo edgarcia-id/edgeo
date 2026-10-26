@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2 — crawl and audit accuracy
+
+- Preserve trailing slashes from sitemap and internal links when requesting pages; report one-hop normalization separately from multi-hop redirect chains.
+- Deduplicate page observations by final URL, compare sitemap and link routes across trailing-slash variants, and separate non-HTML sitemap resources.
+- Describe partial sitemap/link observations as unobserved in scanned HTML, not orphan pages; expose known queue counts without implying sitewide coverage.
+- Ignore explicitly hidden headings and label heading-level gaps as informational structure cues rather than ranking problems.
+- Use the published npm package in generated agent configurations and derive CLI/MCP version strings from package metadata.
+
 ## 0.1.1 — Gemini CLI extension
 
 - Add a native Gemini CLI extension manifest that starts the published npm MCP server.

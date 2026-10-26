@@ -11,6 +11,19 @@ export interface AuditFinding {
   evidence: string;
 }
 
+export interface HeadingOutlineItem {
+  level: number;
+  text: string;
+}
+
+export interface RedirectClassification {
+  kind: "single_redirect" | "trailing_slash_normalization" | "redirect_chain";
+  code: string;
+  severity: Severity;
+  title: string;
+  detail: string;
+}
+
 function textOf(value: string | undefined): string {
   return (value ?? "").replace(/\s+/g, " ").trim();
 }
@@ -26,8 +39,104 @@ function addFinding(
   findings.push({ code, severity, title, detail, evidence });
 }
 
-export async function auditPage(url: string, options: { allowedHostnames?: string[] } = {}) {
-  const response = await fetchPublicHtml(url, options);
+function withoutTrailingSlash(pathname: string): string {
+  return pathname.length > 1 ? pathname.replace(/\/+$/, "") : "/";
+}
+
+export function classifyRedirect(
+  requestedUrl: string,
+  finalUrl: string,
+  redirectCount: number,
+): RedirectClassification | null {
+  if (redirectCount <= 0) return null;
+  if (redirectCount > 1) {
+    return {
+      kind: "redirect_chain",
+      code: "redirect_chain",
+      severity: "low",
+      title: "Multiple redirects were followed",
+      detail:
+        "The requested URL passed through more than one redirect before reaching its final response. Check each hop and update internal links and sitemap entries to the intended final URL where appropriate.",
+    };
+  }
+
+  let trailingSlashOnly = false;
+  try {
+    const requested = new URL(requestedUrl);
+    const final = new URL(finalUrl);
+    trailingSlashOnly =
+      requested.origin === final.origin &&
+      requested.search === final.search &&
+      requested.hash === final.hash &&
+      requested.pathname !== final.pathname &&
+      withoutTrailingSlash(requested.pathname) === withoutTrailingSlash(final.pathname);
+  } catch {
+    // Keep a generic single-redirect observation if either URL is malformed.
+  }
+
+  if (trailingSlashOnly) {
+    return {
+      kind: "trailing_slash_normalization",
+      code: "url_normalization_redirect",
+      severity: "info",
+      title: "One redirect changes the trailing slash",
+      detail:
+        "This is a single URL-normalization redirect, not a redirect chain. It is not by itself an SEO defect; use the preferred URL consistently in internal links and the sitemap if those sources disagree.",
+    };
+  }
+
+  return {
+    kind: "single_redirect",
+    code: "single_redirect",
+    severity: "info",
+    title: "The requested URL redirects once",
+    detail:
+      "A single redirect was followed; this is not a redirect chain. Compare the final URL with internal links, sitemap entries, and the page canonical before treating it as an issue.",
+  };
+}
+
+export function extractHeadingOutline($: ReturnType<typeof load>): HeadingOutlineItem[] {
+  return $("h1,h2,h3,h4,h5,h6")
+    .toArray()
+    .filter((element) => {
+      const chain = [element, ...$(element).parents().toArray()];
+      return !chain.some((node) => {
+        const item = $(node);
+        const style = textOf(item.attr("style")).toLowerCase().replace(/\s+/g, "");
+        return (
+          item.attr("hidden") !== undefined ||
+          textOf(item.attr("aria-hidden")).toLowerCase() === "true" ||
+          /(?:^|;)display:none(?:!important)?(?:;|$)/.test(style) ||
+          /(?:^|;)visibility:(?:hidden|collapse)(?:!important)?(?:;|$)/.test(style)
+        );
+      });
+    })
+    .map((element) => ({
+      level: Number(element.tagName.slice(1)),
+      text: textOf($(element).text()),
+    }))
+    .filter((item) => item.text);
+}
+
+export function findHeadingLevelJumps(headings: HeadingOutlineItem[]): string[] {
+  let previousLevel = 0;
+  const jumps: string[] = [];
+  for (const heading of headings) {
+    if (previousLevel > 0 && heading.level > previousLevel + 1) {
+      jumps.push("H" + previousLevel + " → H" + heading.level + ": " + heading.text);
+    }
+    previousLevel = heading.level;
+  }
+  return jumps;
+}
+
+export async function auditPage(
+  url: string,
+  options: { allowedHostnames?: string[]; fetchPage?: typeof fetchPublicHtml } = {},
+) {
+  const response = await (options.fetchPage ?? fetchPublicHtml)(url, {
+    allowedHostnames: options.allowedHostnames,
+  });
   const $ = load(response.html);
   const findings: AuditFinding[] = [];
   const title = textOf($("title").first().text());
@@ -74,17 +183,8 @@ export async function auditPage(url: string, options: { allowedHostnames?: strin
   ]
     .filter(Boolean)
     .join("; ");
-  const h1s = $("h1")
-    .toArray()
-    .map((element) => textOf($(element).text()))
-    .filter(Boolean);
-  const headings = $("h1,h2,h3,h4,h5,h6")
-    .toArray()
-    .map((element) => ({
-      level: Number(element.tagName.slice(1)),
-      text: textOf($(element).text()),
-    }))
-    .filter((item) => item.text);
+  const headings = extractHeadingOutline($);
+  const h1s = headings.filter((heading) => heading.level === 1).map((heading) => heading.text);
   const images = $("img").toArray();
   const imagesMissingAlt = images.filter((element) => $(element).attr("alt") === null).length;
   const anchors = $("a[href]").toArray();
@@ -202,13 +302,18 @@ export async function auditPage(url: string, options: { allowedHostnames?: strin
     );
   }
 
-  if (response.redirectCount > 0) {
+  const redirectClassification = classifyRedirect(
+    response.requestedUrl,
+    response.finalUrl,
+    response.redirectCount,
+  );
+  if (redirectClassification) {
     addFinding(
       findings,
-      "redirect_chain",
-      "info",
-      "The requested URL redirected",
-      "The audit followed a bounded redirect chain. Check that internal links and canonical URLs use the preferred destination.",
+      redirectClassification.code,
+      redirectClassification.severity,
+      redirectClassification.title,
+      redirectClassification.detail,
       "Redirects followed: " + response.redirectCount + "; final URL: " + response.finalUrl,
     );
   }
@@ -328,21 +433,14 @@ export async function auditPage(url: string, options: { allowedHostnames?: strin
     );
   }
 
-  let previousLevel = 0;
-  const headingJumps: string[] = [];
-  for (const heading of headings) {
-    if (previousLevel > 0 && heading.level > previousLevel + 1) {
-      headingJumps.push("H" + previousLevel + " → H" + heading.level + ": " + heading.text);
-    }
-    previousLevel = heading.level;
-  }
+  const headingJumps = findHeadingLevelJumps(headings);
   if (headingJumps.length > 0) {
     addFinding(
       findings,
       "heading_level_jumps",
-      "low",
-      "Heading levels skip one or more steps",
-      "Review the outline for a reading order that makes the section relationships clear.",
+      "info",
+      "The HTML heading outline skips a level",
+      "This is a structural cue to review, not evidence of a search-ranking problem. The audit excludes explicitly hidden headings but cannot evaluate computed CSS or the intended visual hierarchy.",
       headingJumps.slice(0, 10).join("; "),
     );
   }
@@ -424,6 +522,7 @@ export async function auditPage(url: string, options: { allowedHostnames?: strin
       status: response.status,
       statusText: response.statusText,
       redirectCount: response.redirectCount,
+      redirectClassification: redirectClassification?.kind ?? "none",
       contentType: response.contentType,
       responseBytes: response.responseBytes,
       xRobotsTag: response.headers["x-robots-tag"] ?? null,

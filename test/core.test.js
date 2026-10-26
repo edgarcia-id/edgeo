@@ -13,6 +13,155 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
+import { load } from "cheerio";
+import {
+  auditPage,
+  classifyRedirect,
+  extractHeadingOutline,
+  findHeadingLevelJumps,
+} from "../dist/audit.js";
+import {
+  crawlSite,
+  extractSitemapLocations,
+  normalizedPageUrl,
+  pageUrlIdentity,
+} from "../dist/site-crawl.js";
+
+test("preserves trailing slashes for requests and URL identity", () => {
+  const url = normalizedPageUrl("https://example.com/service/?utm_source=test#section");
+  assert.equal(url?.toString(), "https://example.com/service/");
+  assert.notEqual(
+    pageUrlIdentity("https://example.com/service"),
+    pageUrlIdentity("https://example.com/service/"),
+  );
+});
+
+test("does not call one-hop trailing-slash normalization a redirect chain", () => {
+  const slash = classifyRedirect(
+    "https://example.com/service",
+    "https://example.com/service/",
+    1,
+  );
+  assert.equal(slash?.kind, "trailing_slash_normalization");
+  assert.equal(slash?.code, "url_normalization_redirect");
+  assert.equal(slash?.severity, "info");
+
+  const chain = classifyRedirect(
+    "https://example.com/service",
+    "https://example.com/service/",
+    2,
+  );
+  assert.equal(chain?.kind, "redirect_chain");
+  assert.equal(chain?.code, "redirect_chain");
+});
+
+test("page audit labels URL normalization and heading gaps without ranking claims", async () => {
+  const requestedUrl = "https://example.com/service";
+  const finalUrl = "https://example.com/service/";
+  const result = await auditPage(requestedUrl, {
+    fetchPage: async () => ({
+      requestedUrl,
+      finalUrl,
+      status: 200,
+      statusText: "OK",
+      redirectCount: 1,
+      contentType: "text/html; charset=utf-8",
+      headers: { "content-type": "text/html; charset=utf-8" },
+      html: `<html lang="en"><head><title>Example</title><meta name="viewport" content="width=device-width"></head><body><h1>Main</h1><div hidden><h3>Hidden</h3></div><h3>Section</h3></body></html>`,
+      responseBytes: 200,
+    }),
+  });
+
+  assert.equal(result.http.redirectClassification, "trailing_slash_normalization");
+  assert.ok(result.findings.some((finding) => finding.code === "url_normalization_redirect"));
+  assert.ok(!result.findings.some((finding) => finding.code === "redirect_chain"));
+  const headingFinding = result.findings.find((finding) => finding.code === "heading_level_jumps");
+  assert.equal(headingFinding?.severity, "info");
+  assert.match(headingFinding?.detail ?? "", /not evidence of a search-ranking problem/);
+  assert.doesNotMatch(headingFinding?.evidence ?? "", /Hidden/);
+});
+
+test("extracts only page URLs from sitemaps and ignores nested media locations", () => {
+  const xml = `<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"><url><loc>https://example.com/page/</loc><image:image><image:loc>https://example.com/photo.jpg</image:loc></image:image></url></urlset>`;
+  assert.deepEqual(extractSitemapLocations(xml, false), ["https://example.com/page/"]);
+
+  const index = `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><sitemap><loc>https://example.com/pages.xml</loc></sitemap></sitemapindex>`;
+  assert.deepEqual(extractSitemapLocations(index, true), ["https://example.com/pages.xml"]);
+});
+
+test("ignores explicitly hidden headings and frames hierarchy gaps as structural cues", () => {
+  const $ = load(`<h1>Main</h1><h2>Section</h2><div hidden><h3>Hidden</h3></div><div style="display:none !important"><h3>Hidden by inline CSS</h3></div><h4>Subsection</h4>`);
+  const outline = extractHeadingOutline($);
+  assert.deepEqual(outline.map((heading) => heading.level), [1, 2, 4]);
+  assert.deepEqual(findHeadingLevelJumps(outline), ["H2 → H4: Subsection"]);
+});
+
+test("crawl preserves sitemap URL forms, deduplicates redirect aliases, and separates non-HTML", async () => {
+  const requests = [];
+  const html = (title, canonical, links = "") =>
+    `<html lang="en"><head><title>${title}</title><meta name="description" content="${title}"><meta name="viewport" content="width=device-width"><link rel="canonical" href="${canonical}"></head><body><h1>${title}</h1>${links}</body></html>`;
+  const fetchPage = async (inputUrl) => {
+    const url = new URL(inputUrl);
+    requests.push(url.toString());
+    let status = 200;
+    let statusText = "OK";
+    let finalUrl = url.toString();
+    let redirectCount = 0;
+    let contentType = "text/html; charset=utf-8";
+    let body = "";
+    if (url.pathname === "/robots.txt") {
+      contentType = "text/plain";
+      body = "User-agent: *\nAllow: /\nSitemap: https://fixture.example/sitemap.xml";
+    } else if (url.pathname === "/sitemap.xml") {
+      contentType = "application/xml";
+      body = `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://fixture.example/about/</loc></url><url><loc>https://fixture.example/locations.kml</loc></url></urlset>`;
+    } else if (url.pathname === "/") {
+      body = html(
+        "Home",
+        "https://fixture.example/",
+        `<a href="/about">About</a><a href="/locations.kml">Map</a>`,
+      );
+    } else if (url.pathname === "/about") {
+      finalUrl = "https://fixture.example/about/";
+      redirectCount = 1;
+      body = html("About", finalUrl);
+    } else if (url.pathname === "/about/") {
+      body = html("About", finalUrl);
+    } else if (url.pathname === "/locations.kml") {
+      contentType = "application/vnd.google-earth.kml+xml";
+      body = "<kml/>";
+    } else {
+      status = 404;
+      statusText = "Not Found";
+    }
+    return {
+      requestedUrl: url.toString(),
+      finalUrl,
+      status,
+      statusText,
+      redirectCount,
+      contentType,
+      headers: { "content-type": contentType },
+      html: body,
+      responseBytes: Buffer.byteLength(body),
+    };
+  };
+
+  const result = await crawlSite(
+    { url: "https://fixture.example/", maxPages: 10, delayMs: 0 },
+    { fetchPage, wait: async () => {} },
+  );
+
+  assert.ok(requests.includes("https://fixture.example/about/"));
+  assert.ok(requests.includes("https://fixture.example/about"));
+  assert.equal(result.summary.htmlPagesReturned, 2);
+  assert.equal(result.pages.find((page) => page.finalUrl.endsWith("/about/"))?.requestedUrls.length, 2);
+  assert.equal(result.redirects.summary.trailingSlashNormalizations, 1);
+  assert.equal(result.redirects.summary.multiHopChains, 0);
+  assert.equal(result.nonHtmlResources.length, 1);
+  assert.equal(result.summary.sitemapUrlsNotObservedCount, 0);
+  assert.equal(result.limits.totalSiteUrlCountKnown, false);
+});
 
 test("imports English Search Console CSV and aggregates metrics", () => {
   const result = importSearchConsoleCsv({
@@ -250,6 +399,8 @@ test("starts the stdio MCP server and exposes the release tools", async () => {
       clientInfo: { name: "edgeo-release-test", version: "1.0.0" },
     });
     assert.equal(initialized.result.serverInfo.name, "edgeo");
+    const packageMetadata = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+    assert.equal(initialized.result.serverInfo.version, packageMetadata.version);
     child.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) + "\n");
     const tools = await request("tools/list");
     const names = tools.result.tools.map((tool) => tool.name);

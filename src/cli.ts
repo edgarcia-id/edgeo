@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
+import { createRequire } from "node:module";
 import { existsSync } from "node:fs";
 import { copyFile, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
@@ -11,11 +12,11 @@ import {
   isGoogleSearchConsoleConnected,
 } from "./search-console-api.js";
 
-const VERSION = "0.1.0";
+const VERSION = (createRequire(import.meta.url)("../package.json") as { version: string }).version;
 const SKILL_SOURCE = fileURLToPath(new URL("../integrations/edgeo.skill.md", import.meta.url));
 const SERVER_CONFIG = {
   command: "npx",
-  args: ["-y", "--package=github:edgarcia-id/edgeo", "edgeo-mcp", "serve"],
+  args: ["-y", "edgeo-mcp", "serve"],
 };
 const SUPPORTED_AGENTS = ["claude", "codex", "cursor", "gemini"] as const;
 type Agent = (typeof SUPPORTED_AGENTS)[number];

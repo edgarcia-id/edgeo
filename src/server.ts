@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
+import { createRequire } from "node:module";
 import * as z from "zod/v4";
 import {
   analyzeVisibility,
@@ -14,6 +15,8 @@ import {
   listGoogleSearchConsoleSites,
   queryGoogleSearchConsole,
 } from "./search-console-api.js";
+
+const packageMetadata = createRequire(import.meta.url)("../package.json") as { version: string };
 
 const visibilityObservationSchema = z.object({
   id: z.string().min(1).max(100),
@@ -47,7 +50,7 @@ function asToolError(error: unknown) {
 
 function createServer() {
   const server = new McpServer(
-    { name: "edgeo", version: "0.1.0" },
+    { name: "edgeo", version: packageMetadata.version },
     { maxToolInputElements: 100_000 },
   );
 
@@ -70,7 +73,9 @@ function createServer() {
       const details = [
         "Run an evidence-first SEO, GEO, or Google AI Search audit using the available EdGEO MCP tools.",
         "Use edgeo_audit_page for a public webpage, edgeo_crawl_site for a bounded robots-aware crawl, edgeo_analyze_visibility or edgeo_compare_visibility_runs for supplied model answers, and edgeo_import_search_console_csv or edgeo_summarize_search_console for Search Console data.",
-        "Choose a single page or a bounded site crawl based on the requested scope. For a crawl, state the page cap and do not bypass robots.txt. If robots.txt is unavailable, explain that the crawl was blocked.",
+        "Choose a single page or a bounded site crawl based on the requested scope. For a crawl, state the request cap and do not bypass robots.txt. Remaining known URLs come only from fetched sitemaps and links found on scanned pages; never convert that count into a sitewide coverage percentage.",
+        "Do not call a sitemap URL orphaned because its link was not found in a partial crawl. Say only that it was not observed in scanned HTML; unscanned pages may link to it. Treat a one-hop URL normalization as distinct from a multi-hop redirect chain.",
+        "Heading-level jumps are informational structural cues, not evidence of a search-ranking problem. Mention that computed CSS and visual hierarchy were not evaluated.",
         "For GEO, separate brand recognition, unbranded discovery, comparison, and use-case questions. Do not invent answers or pretend EdGEO queried a model. Compare runs only when the recorded conditions and normalized prompt match.",
         "For Google AI Search, use the read-only Search Console tools when the user has connected their own Google account, or import a supplied export. Keep feature labels as provided and do not infer AI Overviews, AI Mode, or SGE from unlabeled rows.",
         "For model tests, use edgeo_query_model only when requested. Ollama runs on loopback; Gemini sends the prompt externally and requires explicit consent. Do not send private data to external providers without that consent.",
@@ -115,10 +120,16 @@ function createServer() {
     {
       title: "Crawl and audit a public site",
       description:
-        "Run a bounded same-host HTML crawl seeded from the start URL and same-host sitemap URLs. Reads robots.txt first, applies its rules and crawl-delay, and never renders JavaScript or follows links to other hosts.",
+        "Run a bounded same-host HTML crawl seeded from the start URL and same-host sitemap URLs. Preserves trailing slashes when requesting URLs, reads robots.txt first, applies its rules and crawl-delay, separates non-HTML sitemap resources, and never renders JavaScript or follows links to other hosts. Reports known queued URL counts, not sitewide coverage.",
       inputSchema: z.object({
         url: z.string().url().describe("Public HTTP or HTTPS start URL."),
-        maxPages: z.number().int().min(1).max(50).default(20),
+      maxPages: z
+        .number()
+        .int()
+        .min(1)
+        .max(50)
+        .default(20)
+        .describe("Maximum URL fetch attempts, including non-HTML sitemap resources and URL variants that redirect to an already seen page."),
         delayMs: z.number().int().min(100).max(10_000).default(500),
       }),
       annotations: { readOnlyHint: true, openWorldHint: true },

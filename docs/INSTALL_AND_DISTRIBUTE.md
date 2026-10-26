@@ -2,19 +2,13 @@
 
 ## Local bootstrap
 
-After the npm package is published, users can configure selected local clients with:
+Users can configure selected local clients from the published npm package with:
 
 ```sh
 npx -y edgeo-mcp install --agent claude,codex,cursor,gemini
 ```
 
-Until npm publication is complete, bootstrap from the GitHub source:
-
-```sh
-npx -y --package=github:edgarcia-id/edgeo edgeo-mcp install --agent claude,codex,cursor,gemini
-```
-
-The GitHub package runs its `prepare` build when npm installs it. The installer launches the native MCP commands for Claude Code and Codex, and merges `mcpServers.edgeo` into the user's Cursor or Gemini JSON config. JSON files are backed up before modification. Conflicting `edgeo` entries are left untouched and reported.
+The installer launches the native MCP commands for Claude Code and Codex, and merges `mcpServers.edgeo` into the user's Cursor or Gemini JSON config. JSON files are backed up before modification. Conflicting `edgeo` entries are left untouched and reported.
 
 Supported commands:
 
