@@ -73,7 +73,7 @@ async function loadToken(path = tokenPath()): Promise<StoredGoogleToken> {
   try {
     value = JSON.parse(await readFile(path, "utf8"));
   } catch {
-    throw new Error("Google Search Console is not connected. Run `npx -y edgeo-mcp search-console connect --client-id YOUR_DESKTOP_OAUTH_CLIENT_ID`.");
+    throw new Error("Google Search Console is not connected. Run `npx --yes --prefer-online edgeo-mcp@latest search-console connect --client-id YOUR_DESKTOP_OAUTH_CLIENT_ID`.");
   }
   if (
     !value ||

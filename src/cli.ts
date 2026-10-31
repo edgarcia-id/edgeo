@@ -16,7 +16,7 @@ const VERSION = (createRequire(import.meta.url)("../package.json") as { version:
 const SKILL_SOURCE = fileURLToPath(new URL("../integrations/edgeo.skill.md", import.meta.url));
 const SERVER_CONFIG = {
   command: "npx",
-  args: ["-y", "edgeo-mcp", "serve"],
+  args: ["--yes", "--prefer-online", "edgeo-mcp@latest", "serve"],
 };
 const SUPPORTED_AGENTS = ["claude", "codex", "cursor", "gemini"] as const;
 type Agent = (typeof SUPPORTED_AGENTS)[number];
@@ -94,7 +94,21 @@ async function mergeJsonServerConfig(agent: "cursor" | "gemini"): Promise<void> 
       process.stdout.write(`${agent}: EdGEO is already configured at ${path}\n`);
       return;
     }
-    throw new Error(`${path} already contains a different MCP server named edgeo. Rename or remove that entry before installing.`);
+    const existingRecord = !!existing && typeof existing === "object" && !Array.isArray(existing)
+      ? existing as Record<string, unknown>
+      : undefined;
+    const oldArgs = existingRecord?.args;
+    const knownPreviousArgs = Array.isArray(oldArgs) && [
+      ["-y", "edgeo-mcp", "serve"],
+      ["--yes", "edgeo-mcp", "serve"],
+      ["--yes", "--prefer-online", "edgeo-mcp@latest", "serve"],
+    ].some((known) => JSON.stringify(oldArgs) === JSON.stringify(known));
+    const isPreviousEdgeoConfig = existingRecord?.command === "npx"
+      && Object.keys(existingRecord).every((key) => key === "command" || key === "args")
+      && knownPreviousArgs;
+    if (!isPreviousEdgeoConfig) {
+      throw new Error(`${path} already contains a different MCP server named edgeo. Rename or remove that entry before installing.`);
+    }
   }
   try { await readFile(path); await backup(path); } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
@@ -104,7 +118,7 @@ async function mergeJsonServerConfig(agent: "cursor" | "gemini"): Promise<void> 
   const temporary = `${path}.edgeo-tmp`;
   await writeFile(temporary, JSON.stringify(config, null, 2) + "\n", "utf8");
   await rename(temporary, path);
-  process.stdout.write(`${agent}: configured EdGEO at ${path}\n`);
+  process.stdout.write(`${agent}: ${existing ? "updated" : "configured"} EdGEO at ${path}\n`);
 }
 
 function runHostCli(agent: "claude" | "codex", action: "install" | "uninstall"): void {
@@ -131,11 +145,21 @@ async function installSkill(agent: "claude" | "codex"): Promise<void> {
   try {
     const current = await readFile(path, "utf8");
     if (current === content) return;
-    throw new Error(`${path} already exists with different content; move it aside before replacing it.`);
+    const isManagedEdgeoSkill = /^---\r?\nname: edgeo\r?\n/.test(current)
+      && current.includes("# Run an EdGEO audit");
+    if (!isManagedEdgeoSkill) {
+      throw new Error(`${path} already exists and is not a recognized EdGEO skill; move it aside before installing.`);
+    }
+    await backup(path);
+    const temporary = `${path}.edgeo-tmp`;
+    await writeFile(temporary, content, "utf8");
+    await rename(temporary, path);
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    const temporary = `${path}.edgeo-tmp`;
+    await writeFile(temporary, content, "utf8");
+    await rename(temporary, path);
   }
-  await writeFile(path, content, "utf8");
 }
 
 async function install(args: string[]): Promise<void> {
@@ -150,7 +174,7 @@ async function install(args: string[]): Promise<void> {
       await mergeJsonServerConfig(agent);
     }
   }
-  process.stdout.write("EdGEO is configured. Restart or reload each agent; run `edgeo-mcp doctor` to inspect the setup.\n");
+  process.stdout.write("EdGEO is configured for the latest npm release at each server start. Restart or reload each agent; run `edgeo-mcp doctor` to inspect the setup.\n");
 }
 
 async function removeJsonServerConfig(agent: "cursor" | "gemini"): Promise<void> {

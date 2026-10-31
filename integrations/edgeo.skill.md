@@ -7,7 +7,7 @@ description: Audit a public website for observable technical SEO, analyze AI vis
 
 Use the EdGEO MCP tools to inspect a user's website or evidence.
 
-1. Identify the target URL, brand, locale, and requested scope. For one page, use `edgeo_audit_page`; for a bounded sample, use `edgeo_crawl_site` and keep its URL-attempt cap and robots.txt restrictions visible. Do not convert the remaining known queue into a sitewide coverage percentage.
+1. Identify the target URL, brand, locale, and requested scope. For one page, use `edgeo_audit_page`; for a bounded sample, use `edgeo_crawl_site` (default 50 attempted URLs, maximum 200) and keep its URL-attempt cap and robots.txt restrictions visible. Raise the cap when the user requests a broader crawl and the host's crawl delay permits it. Do not convert the remaining known queue into a sitewide coverage percentage.
 2. For AI visibility, distinguish brand recognition, unbranded discovery, comparison, and use-case questions. `edgeo_query_model` can collect one Ollama local API answer or one Gemini API answer. Gemini sends the prompt to Google only when the user explicitly approves the external request. Provider API results are not consumer chat or Google AI Search results.
 3. Analyze collected or user-provided answers with `edgeo_analyze_visibility`; compare runs with `edgeo_compare_visibility_runs` only when prompts and recorded conditions match.
 4. For Google Search Console, use `edgeo_search_console_sites` and `edgeo_search_console_query` after the user's read-only OAuth connection. Alternatively, import a user-provided export with `edgeo_import_search_console_csv`.

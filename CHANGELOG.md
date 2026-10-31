@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.3 — automatic updates
+
+- Resolve the latest stable npm package whenever an agent starts the EdGEO MCP server, with online cache checks.
+- Increase the default crawl cap from 20 to 50 pages and the configurable maximum from 50 to 200.
+- Let the installer safely upgrade recognized older EdGEO configs for Cursor and Gemini, backing up their JSON settings first.
+- Back up and refresh EdGEO-managed Claude Code and Codex skills when reinstalling the package.
+- Publish tagged releases to npm from GitHub Actions using npm trusted publishing, so the update channel advances with each release.
+
 ## 0.1.2 — crawl and audit accuracy
 
 - Preserve trailing slashes from sitemap and internal links when requesting pages; report one-hop normalization separately from multi-hop redirect chains.

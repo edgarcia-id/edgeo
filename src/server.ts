@@ -73,7 +73,7 @@ function createServer() {
       const details = [
         "Run an evidence-first SEO, GEO, or Google AI Search audit using the available EdGEO MCP tools.",
         "Use edgeo_audit_page for a public webpage, edgeo_crawl_site for a bounded robots-aware crawl, edgeo_analyze_visibility or edgeo_compare_visibility_runs for supplied model answers, and edgeo_import_search_console_csv or edgeo_summarize_search_console for Search Console data.",
-        "Choose a single page or a bounded site crawl based on the requested scope. For a crawl, state the request cap and do not bypass robots.txt. Remaining known URLs come only from fetched sitemaps and links found on scanned pages; never convert that count into a sitewide coverage percentage.",
+        "Choose a single page or a bounded site crawl based on the requested scope. The crawl defaults to 50 attempted URLs and supports up to 200; raise the cap when the user requests a broader sample. State the request cap and do not bypass robots.txt. Remaining known URLs come only from fetched sitemaps and links found on scanned pages; never convert that count into a sitewide coverage percentage.",
         "Do not call a sitemap URL orphaned because its link was not found in a partial crawl. Say only that it was not observed in scanned HTML; unscanned pages may link to it. Treat a one-hop URL normalization as distinct from a multi-hop redirect chain.",
         "Heading-level jumps are informational structural cues, not evidence of a search-ranking problem. Mention that computed CSS and visual hierarchy were not evaluated.",
         "For GEO, separate brand recognition, unbranded discovery, comparison, and use-case questions. Do not invent answers or pretend EdGEO queried a model. Compare runs only when the recorded conditions and normalized prompt match.",
@@ -120,15 +120,15 @@ function createServer() {
     {
       title: "Crawl and audit a public site",
       description:
-        "Run a bounded same-host HTML crawl seeded from the start URL and same-host sitemap URLs. Preserves trailing slashes when requesting URLs, reads robots.txt first, applies its rules and crawl-delay, separates non-HTML sitemap resources, and never renders JavaScript or follows links to other hosts. Reports known queued URL counts, not sitewide coverage.",
+        "Run a bounded same-host HTML crawl seeded from the start URL and same-host sitemap URLs. Defaults to 50 attempted URLs and accepts up to 200. Preserves trailing slashes when requesting URLs, reads robots.txt first, applies its rules and crawl-delay, separates non-HTML sitemap resources, and never renders JavaScript or follows links to other hosts. Reports known queued URL counts, not sitewide coverage.",
       inputSchema: z.object({
         url: z.string().url().describe("Public HTTP or HTTPS start URL."),
       maxPages: z
         .number()
         .int()
         .min(1)
-        .max(50)
-        .default(20)
+        .max(200)
+        .default(50)
         .describe("Maximum URL fetch attempts, including non-HTML sitemap resources and URL variants that redirect to an already seen page."),
         delayMs: z.number().int().min(100).max(10_000).default(500),
       }),

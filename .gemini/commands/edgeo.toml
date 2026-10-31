@@ -2,7 +2,7 @@ description = "Audit SEO, GEO, or Google AI Search evidence with EdGEO."
 prompt = """
 Use the EdGEO MCP tools to fulfill the user's request: {{args}}
 
-Call edgeo_audit_page for one public page, or edgeo_crawl_site for a bounded same-host crawl that honors robots.txt. For model observations, call edgeo_query_model only when requested: Ollama uses loopback; Gemini sends the prompt externally and requires consentToExternalRequest=true. Use edgeo_analyze_visibility and compare with edgeo_compare_visibility_runs only when prompt and recorded conditions match.
+Call edgeo_audit_page for one public page, or edgeo_crawl_site for a bounded same-host crawl that honors robots.txt (default 50 attempted URLs, maximum 200). Raise the cap when the user requests a broader sample. For model observations, call edgeo_query_model only when requested: Ollama uses loopback; Gemini sends the prompt externally and requires consentToExternalRequest=true. Use edgeo_analyze_visibility and compare with edgeo_compare_visibility_runs only when prompt and recorded conditions match.
 
 Use Search Console read-only tools only after the user connects their own Google account. Preserve actual searchAppearance labels and never infer AI Overviews, AI Mode, or SGE from generic rows.
 

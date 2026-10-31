@@ -24,7 +24,7 @@ EdGEO gives compatible AI agents tools to inspect public website pages, crawl a 
 Install the local MCP server in selected clients with:
 
 ```sh
-npx -y edgeo-mcp install --agent claude,codex,cursor,gemini
+npx --yes --prefer-online edgeo-mcp@latest install --agent claude,codex,cursor,gemini
 ```
 
 For a native Gemini CLI extension installation, use:
@@ -44,11 +44,19 @@ claude plugin install edgeo@edgeo-marketplace
 
 The plugin provides MCP tools and the namespaced `/edgeo:edgeo` command. The standalone installer below also installs an unqualified `/edgeo` skill.
 
-The installer merges user-level settings, backs up JSON config files before editing them, and preserves unrelated server entries. Claude Code and Codex use their native CLI commands; Cursor and Gemini CLI use their user MCP configuration. Claude Code and Codex also receive an EdGEO skill. Restart or reload the selected clients after installation.
+The installer merges user-level settings, backs up JSON config files before editing them, and preserves unrelated server entries. It upgrades earlier EdGEO-generated Cursor and Gemini MCP entries in place. Claude Code and Codex use their native CLI commands; Claude Code and Codex also receive an EdGEO skill. Restart or reload the selected clients after installation.
+
+### Automatic updates
+
+The installer configures the MCP server to run `npx --yes --prefer-online edgeo-mcp@latest serve`. Each time an agent starts the server, npm checks for the latest published EdGEO version and downloads it when needed. A server already running keeps its current code until the agent reloads or restarts it. The update check sends the package name and version request to npm; it does not send the audited website, prompts, API keys, or local results.
+
+Claude Code installs the `/edgeo:edgeo` plugin from a third-party marketplace, whose automatic updates are off by default. To receive plugin and prompt updates automatically, open `/plugin`, select **Marketplaces → edgeo-marketplace**, and enable **Auto-update**. Claude Code checks marketplace updates at startup and notifies you when a plugin changes; run `/reload-plugins` or start a new session to load it. A session already using EdGEO keeps the version it loaded.
+
+Tagged GitHub releases publish the matching package version to npm and update EdGEO's Official MCP Registry listing through GitHub Actions. Before the first automated publish, configure `edgeo-mcp` on npm with a trusted publisher for GitHub Actions, repository `edgarcia-id/edgeo`, workflow `release.yml`, and permission to publish. See npm's [trusted publishing setup](https://docs.npmjs.com/trusted-publishers/). Keep the tag in the form `v<package.json version>`.
 
 ```sh
-npx -y edgeo-mcp doctor
-npx -y edgeo-mcp uninstall --agent claude,codex,cursor,gemini
+npx --yes --prefer-online edgeo-mcp@latest doctor
+npx --yes --prefer-online edgeo-mcp@latest uninstall --agent claude,codex,cursor,gemini
 ```
 
 The MCP server registers a prompt named `edgeo`. Hosts that expose MCP prompts as slash commands may show `/edgeo`; other hosts use their skill picker, prompt UI, or normal tool invocation. MCP does not define one slash-command syntax for every agent.
@@ -60,7 +68,7 @@ For direct/manual setup and supported host behavior, read [Install and distribut
 Google Search Console API usage is free of charge and subject to Google's quotas. Each user connects their own Google account; EdGEO requests only the Search Console read-only scope. To connect, create a Google OAuth client of type **Desktop app**, enable the Search Console API in that Google Cloud project, and run:
 
 ```sh
-npx -y edgeo-mcp search-console connect --client-id YOUR_DESKTOP_OAUTH_CLIENT_ID
+npx --yes --prefer-online edgeo-mcp@latest search-console connect --client-id YOUR_DESKTOP_OAUTH_CLIENT_ID
 ```
 
 The browser opens Google's consent screen and returns to a loopback callback on the same computer. The refresh token is stored in the user's local EdGEO data directory; set `EDGEO_DATA_DIR` to choose another directory. `edgeo-mcp search-console status` checks local setup and `edgeo-mcp search-console disconnect` revokes the saved grant and removes it.
@@ -107,4 +115,4 @@ Apache-2.0. Commercial use and redistribution are permitted subject to the licen
 
 ## Project status
 
-The `edgeo-mcp` package and EdGEO server metadata are published to npm and the Official MCP Registry. Version 0.1.2 refines crawl URL handling, redirect classification, sitemap link observations, and heading cues. Version 0.1.1 added native Gemini CLI extension support; the Gemini gallery discovers qualifying tagged repositories through its daily crawler.
+The latest published package is 0.1.2. This repository prepares 0.1.3 with automatic update support; it becomes available to users after its matching GitHub tag is released and published to npm. EdGEO server metadata is listed in the Official MCP Registry. Version 0.1.2 refines crawl URL handling, redirect classification, sitemap link observations, and heading cues. Version 0.1.1 added native Gemini CLI extension support; the Gemini gallery discovers qualifying tagged repositories through its daily crawler.
