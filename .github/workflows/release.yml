@@ -4,6 +4,17 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to finish (for example v0.1.3)
+        required: true
+        type: string
+      publish_npm:
+        description: Publish to npm before completing the remaining release steps
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -14,8 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MCP_PUBLISHER_VERSION: v1.8.1
+      TARGET_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -24,8 +38,8 @@ jobs:
       - name: Check tag and package version
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
-          if [ "$GITHUB_REF_NAME" != "v$PACKAGE_VERSION" ]; then
-            echo "Tag $GITHUB_REF_NAME does not match package version $PACKAGE_VERSION"
+          if [ "$TARGET_TAG" != "v$PACKAGE_VERSION" ]; then
+            echo "Tag $TARGET_TAG does not match package version $PACKAGE_VERSION"
             exit 1
           fi
       - name: Update npm CLI for trusted publishing
@@ -37,7 +51,21 @@ jobs:
       - run: npm audit --omit=dev
       - run: mkdir -p release && npm pack --pack-destination release
       - name: Publish package to npm
+        if: ${{ github.event_name == 'push' || inputs.publish_npm }}
         run: npm publish --access public
+      - name: Wait for npm package visibility
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          for attempt in $(seq 1 16); do
+            if npm view "edgeo-mcp@$PACKAGE_VERSION" version >/dev/null 2>&1; then
+              echo "edgeo-mcp@$PACKAGE_VERSION is visible on npm"
+              exit 0
+            fi
+            echo "Waiting for edgeo-mcp@$PACKAGE_VERSION to become visible on npm (attempt $attempt/16)"
+            sleep 15
+          done
+          echo "edgeo-mcp@$PACKAGE_VERSION did not become visible on npm in time"
+          exit 1
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
       - name: Download and verify MCP Registry publisher
@@ -63,4 +91,9 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" release/*.tgz --generate-notes
+        run: |
+          if gh release view "$TARGET_TAG" >/dev/null 2>&1; then
+            echo "GitHub Release $TARGET_TAG already exists"
+          else
+            gh release create "$TARGET_TAG" release/*.tgz --generate-notes
+          fi
