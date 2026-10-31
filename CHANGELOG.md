@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4 — Search Console property filtering
+
+- Add an optional case-insensitive property URL filter to `edgeo_search_console_sites`, giving the MCP tool an explicit, useful input schema.
+
 ## 0.1.3 — automatic updates
 
 - Resolve the latest stable npm package whenever an agent starts the EdGEO MCP server, with online cache checks.

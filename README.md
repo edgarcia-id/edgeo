@@ -115,4 +115,4 @@ Apache-2.0. Commercial use and redistribution are permitted subject to the licen
 
 ## Project status
 
-The latest published package is 0.1.2. This repository prepares 0.1.3 with automatic update support; it becomes available to users after its matching GitHub tag is released and published to npm. EdGEO server metadata is listed in the Official MCP Registry. Version 0.1.2 refines crawl URL handling, redirect classification, sitemap link observations, and heading cues. Version 0.1.1 added native Gemini CLI extension support; the Gemini gallery discovers qualifying tagged repositories through its daily crawler.
+EdGEO is distributed on npm and listed in the Official MCP Registry. Release history: 0.1.4 adds an optional Search Console property filter; 0.1.3 added automatic update checks and expanded the default crawl limit; 0.1.2 refined crawl URL handling, redirects, sitemap observations, and heading cues. Version 0.1.1 added native Gemini CLI extension support; the Gemini gallery discovers qualifying tagged repositories through its daily crawler.

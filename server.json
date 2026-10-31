@@ -3,7 +3,7 @@
   "name": "io.github.edgarcia-id/edgeo",
   "title": "EdGEO",
   "description": "Local MCP for evidence-based SEO, GEO, Google AI Search, and Search Console.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "websiteUrl": "https://github.com/edgarcia-id/edgeo",
   "icons": [
     {
@@ -27,7 +27,7 @@
     {
       "registryType": "npm",
       "identifier": "edgeo-mcp",
-      "version": "0.1.3",
+      "version": "0.1.4",
       "transport": {
         "type": "stdio"
       },

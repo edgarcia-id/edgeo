@@ -28,7 +28,7 @@ Run `edgeo-mcp search-console status` to check whether local credentials are pre
 
 ## Available MCP tools
 
-- `edgeo_search_console_sites` lists the properties authorized for the account.
+- `edgeo_search_console_sites` lists the properties authorized for the account; optionally pass `siteUrlContains` to filter property URLs case-insensitively.
 - `edgeo_search_console_query` reads rows using the date range, search type, dimensions, aggregation, and row limit the user specifies.
 
 Supported dimensions are `date`, `query`, `page`, `country`, `device`, and `searchAppearance`. The limit is 25,000 rows per request. Google may return fewer rows, omit anonymized queries, or truncate results.

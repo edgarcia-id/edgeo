@@ -407,6 +407,9 @@ test("starts the stdio MCP server and exposes the release tools", async () => {
     assert.equal(names.length, 9);
     assert.ok(names.includes("edgeo_search_console_query"));
     assert.ok(names.includes("edgeo_query_model"));
+    const sitesTool = tools.result.tools.find((tool) => tool.name === "edgeo_search_console_sites");
+    assert.ok(sitesTool.inputSchema.properties.siteUrlContains);
+    assert.equal(sitesTool.inputSchema.required?.includes("siteUrlContains") ?? false, false);
   } finally {
     lines.close();
     child.kill();

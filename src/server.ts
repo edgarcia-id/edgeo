@@ -301,13 +301,28 @@ function createServer() {
     {
       title: "List connected Search Console properties",
       description:
-        "List Google Search Console properties for the user's locally authorized Google account. Requires prior setup with `edgeo-mcp search-console connect`; uses a read-only OAuth scope and returns only properties the Google account can access.",
-      inputSchema: z.object({}),
+        "List Google Search Console properties for the user's locally authorized Google account. Requires prior setup with `edgeo-mcp search-console connect`; uses a read-only OAuth scope and returns only properties the Google account can access. Optionally filter property URLs by a case-insensitive substring.",
+      inputSchema: z.object({
+        siteUrlContains: z
+          .string()
+          .min(1)
+          .max(2048)
+          .optional()
+          .describe("Optional case-insensitive substring to filter property URLs."),
+      }),
       annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    async () => {
+    async ({ siteUrlContains }) => {
       try {
-        return asToolResult(await listGoogleSearchConsoleSites());
+        const result = await listGoogleSearchConsoleSites();
+        const filter = siteUrlContains?.trim().toLocaleLowerCase("en-US");
+        if (!filter || !Array.isArray(result.siteEntry)) return asToolResult(result);
+        return asToolResult({
+          ...result,
+          siteEntry: result.siteEntry.filter((entry) =>
+            entry.siteUrl?.toLocaleLowerCase("en-US").includes(filter),
+          ),
+        });
       } catch (error) {
         return asToolError(error);
       }
