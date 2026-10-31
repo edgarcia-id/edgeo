@@ -34,7 +34,6 @@ jobs:
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
-          package-manager-cache: false
       - name: Check tag and package version
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
