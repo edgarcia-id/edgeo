@@ -1,7 +1,9 @@
 # EdGEO
 
 <img align="right" src="assets/edgeo-icon.svg" alt="EdGEO icon" width="96" height="96">
-[![EdGEO MCP on mcprush](https://mcprush.com/badge/edgeo-mcp/score.svg)](https://mcprush.com/to/edgeo-mcp?ref=badge)
+
+[![EdGEO MCP server](https://mcprush.com/badge/edgeo-mcp/card.svg)](https://mcprush.com/to/edgeo-mcp?ref=badge)
+
 **A free, local-first MCP toolkit for evidence-based SEO, GEO, and Google AI Search audits.**
 
 EdGEO gives compatible AI agents tools to inspect public website pages, crawl a bounded part of a site, analyze AI answers, and read a user's own Google Search Console data. It is a standalone open-source project. No EdGEO account, hosted EdGEO service, telemetry, or subscription is required.
